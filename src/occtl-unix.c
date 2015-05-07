@@ -752,13 +752,14 @@ int common_info_cmd(UserListRep * args)
 
 		if (args->user[i]->local_ip != NULL && args->user[i]->local_ip[0] != 0 &&
 		    args->user[i]->remote_ip != NULL && args->user[i]->remote_ip[0] != 0) {
-			fprintf(out, "\tIPv4: %s  ", args->user[i]->local_ip);
-			fprintf(out, "P-t-P IPv4: %s\n", args->user[i]->remote_ip);
+			fprintf(out, "\tIPv4: %s  ", args->user[i]->remote_ip);
+			fprintf(out, "P-t-P IPv4: %s\n", args->user[i]->local_ip);
 		}
 		if (args->user[i]->local_ip6 != NULL && args->user[i]->local_ip6[0] != 0 &&
 		    args->user[i]->remote_ip6 != NULL && args->user[i]->remote_ip6[0] != 0) {
-			fprintf(out, "\tIPv6: %s  ", args->user[i]->local_ip6);
-			fprintf(out, "P-t-P IPv6: %s\n", args->user[i]->remote_ip6);
+			fprintf(out, "\tIPv6: %s/%u  ", args->user[i]->remote_ip6,
+			args->user[i]->remote_ip6_prefix);
+			fprintf(out, "P-t-P IPv6: %s\n", args->user[i]->local_ip6);
 		}
 		fprintf(out, "\tDevice: %s  ", args->user[i]->tun);
 

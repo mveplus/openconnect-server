@@ -277,7 +277,7 @@ static int append_user_info(method_ctx *ctx,
 				ctmp->ipv4->rip_len, ipbuf, IPBUF_SIZE, 0);
 	if (strtmp == NULL)
 		strtmp = "";
-	rep->local_ip = strtmp;
+	rep->remote_ip = strtmp;
 
 	ipbuf = talloc_size(ctx->pool, IPBUF_SIZE);
 	if (ipbuf == NULL)
@@ -290,7 +290,7 @@ static int append_user_info(method_ctx *ctx,
 				ctmp->ipv4->lip_len, ipbuf, IPBUF_SIZE, 0);
 	if (strtmp == NULL)
 		strtmp = "";
-	rep->remote_ip = strtmp;
+	rep->local_ip = strtmp;
 
 	/* IPv6 */
 
@@ -305,7 +305,11 @@ static int append_user_info(method_ctx *ctx,
 				ctmp->ipv6->rip_len, ipbuf, IPBUF_SIZE, 0);
 	if (strtmp == NULL)
 		strtmp = "";
-	rep->local_ip6 = strtmp;
+	rep->remote_ip6 = strtmp;
+	rep->remote_ip6_prefix = ctmp->config.ipv6_prefix;
+	if (rep->remote_ip6_prefix == 0)
+		rep->remote_ip6_prefix = 128;
+	rep->has_remote_ip6_prefix = 1;
 
 	ipbuf = talloc_size(ctx->pool, IPBUF_SIZE);
 	if (ipbuf == NULL)
@@ -318,7 +322,7 @@ static int append_user_info(method_ctx *ctx,
 				ctmp->ipv6->lip_len, ipbuf, IPBUF_SIZE, 0);
 	if (strtmp == NULL)
 		strtmp = "";
-	rep->remote_ip6 = strtmp;
+	rep->local_ip6 = strtmp;
 
 	rep->conn_time = ctmp->conn_time;
 	rep->hostname = ctmp->hostname;
