@@ -11,7 +11,10 @@
   notify of user session closure.
 - radius: consider Acct-Interim-Interval sent by the server by default.
   That can be overriden using override-interim-updates in radius subconfig.
-- Added configuration option 'persistent-cookies'.
+- Added configuration options 'persistent-cookies' and 'ipv6-subnet-id-length'.
+- Added user-specific configuration option explicit-local-ipv4 and
+  explicit-local-ipv6.
+
 
 * Version 0.10.4 (released 2015-04-27)
 - sec-mod: expire sessions which are in terminated state
