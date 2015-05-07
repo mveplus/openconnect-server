@@ -903,6 +903,11 @@ unsigned urlfw_size = 0;
 			fprintf(stderr, "invalid IPv6 prefix: %u\n", prefix);
 			exit(1);
 		}
+
+		if (prefix + config->network.ipv6_subnet_id_length >= 128) {
+			fprintf(stderr, "prefix (%d) + subnet id length (%d) are invalid\n", prefix, config->network.ipv6_subnet_id_length);
+			exit(1);
+		}
 	}
 
 	READ_MULTI_LINE("custom-header", config->custom_header, config->custom_header_size);
