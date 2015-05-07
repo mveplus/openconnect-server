@@ -51,8 +51,8 @@ static int get_sup_config(struct cfg_st *cfg, client_entry_st *entry,
 		msg->explicit_ipv4 = talloc_strdup(pool, pctx->ipv4);
 	}
 
-	if (pctx->nas_ipv4[0] != 0) {
-		msg->explicit_nas_ipv4 = talloc_strdup(pool, pctx->nas_ipv4);
+	if (pctx->local_ipv4[0] != 0) {
+		msg->explicit_local_ipv4 = talloc_strdup(pool, pctx->local_ipv4);
 	}
 
 	if (pctx->ipv4_mask[0] != 0) {
@@ -99,8 +99,8 @@ static int get_sup_config(struct cfg_st *cfg, client_entry_st *entry,
 		msg->explicit_ipv6 = talloc_strdup(pool, pctx->ipv6);
 	}
 
-	if (pctx->nas_ipv6[0] != 0) {
-		msg->explicit_nas_ipv6 = talloc_strdup(pool, pctx->nas_ipv6);
+	if (pctx->local_ipv6[0] != 0) {
+		msg->explicit_local_ipv6 = talloc_strdup(pool, pctx->local_ipv6);
 	}
 
 	if (pctx->ipv6_net[0] != 0) {

@@ -32,13 +32,13 @@ struct radius_ctx_st {
 	int interim_interval_secs;
 
 	/* variables for configuration */
-	char nas_ipv4[MAX_IP_STR];
+	char local_ipv4[MAX_IP_STR];
 	char ipv4[MAX_IP_STR];
 	char ipv4_mask[MAX_IP_STR];
 	char ipv4_dns1[MAX_IP_STR];
 	char ipv4_dns2[MAX_IP_STR];
 
-	char nas_ipv6[MAX_IP_STR];
+	char local_ipv6[MAX_IP_STR];
 	char ipv6[MAX_IP_STR];
 	char ipv6_net[MAX_IP_STR];
 	uint16_t ipv6_prefix;

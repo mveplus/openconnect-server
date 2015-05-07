@@ -217,12 +217,12 @@ int get_ipv4_lease(main_server_st* s, struct proc_st* proc)
 			goto fail;
 		}
 
-		if (proc->config.explicit_nas_ipv4) {
+		if (proc->config.explicit_local_ipv4) {
 			ret =
-			    inet_pton(AF_INET, proc->config.explicit_nas_ipv4, SA_IN_P(&tmp));
+			    inet_pton(AF_INET, proc->config.explicit_local_ipv4, SA_IN_P(&tmp));
 
 			if (ret != 1) {
-				mslog(s, NULL, LOG_ERR, "error reading explicit IP: %s", proc->config.explicit_nas_ipv4);
+				mslog(s, NULL, LOG_ERR, "error reading explicit IP: %s", proc->config.explicit_local_ipv4);
 				return -1;
 			}
 
@@ -394,12 +394,12 @@ int get_ipv6_lease(main_server_st* s, struct proc_st* proc)
 			goto fail;
 		}
 
-		if (proc->config.explicit_nas_ipv6) {
+		if (proc->config.explicit_local_ipv6) {
 			ret =
-			    inet_pton(AF_INET6, proc->config.explicit_nas_ipv6, SA_IN6_P(&tmp));
+			    inet_pton(AF_INET6, proc->config.explicit_local_ipv6, SA_IN6_P(&tmp));
 
 			if (ret != 1) {
-				mslog(s, NULL, LOG_ERR, "error reading explicit IP %s", proc->config.explicit_nas_ipv6);
+				mslog(s, NULL, LOG_ERR, "error reading explicit IP %s", proc->config.explicit_local_ipv6);
 				return -1;
 			}
 

@@ -195,8 +195,8 @@ struct group_cfg_st {
 
 	char *explicit_ipv4;
 	char *explicit_ipv6;
-	char *explicit_nas_ipv4;
-	char *explicit_nas_ipv6;
+	char *explicit_local_ipv4;
+	char *explicit_local_ipv6;
 
 	char *cgroup;
 

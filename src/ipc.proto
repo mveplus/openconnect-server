@@ -276,8 +276,8 @@ message sec_auth_session_reply_msg
 	optional string explicit_ipv4 = 26;
 	optional string explicit_ipv6 = 27;
 	repeated string no_routes = 28;
-	optional string explicit_nas_ipv4 = 29;
-	optional string explicit_nas_ipv6 = 30;
+	optional string explicit_local_ipv4 = 29;
+	optional string explicit_local_ipv6 = 30;
 }
 
 /* SEC_BAN_IP: sent from sec-mod to main */
