@@ -277,6 +277,14 @@ int session_open(main_server_st * s, struct proc_st *proc, const uint8_t *cookie
 		proc->config.explicit_ipv6 = talloc_strdup(proc, msg->explicit_ipv6);
 	}
 
+	if (msg->explicit_nas_ipv4) {
+		proc->config.explicit_nas_ipv4 = talloc_strdup(proc, msg->explicit_nas_ipv4);
+	}
+
+	if (msg->explicit_nas_ipv6) {
+		proc->config.explicit_nas_ipv6 = talloc_strdup(proc, msg->explicit_nas_ipv6);
+	}
+
 	if (msg->n_routes > 0) {
 		proc->config.routes = talloc_size(proc, sizeof(char*)*msg->n_routes);
 		for (i=0;i<msg->n_routes;i++) {

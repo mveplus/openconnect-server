@@ -257,10 +257,23 @@ static int radius_auth_pass(void *ctx, const char *pass, unsigned pass_len)
 			} else if (vp->attribute == PW_FRAMED_IPV6_ADDRESS && vp->type == PW_TYPE_IPV6ADDR) {
 				/* Framed-IPv6-Address */
 				if (inet_ntop(AF_INET6, vp->strvalue, pctx->ipv6, sizeof(pctx->ipv6)) != NULL) {
-					pctx->ipv6_prefix = 64;
+					pctx->ipv6_prefix = 128;
 					strlcpy(pctx->ipv6_net, pctx->ipv6, sizeof(pctx->ipv6_net));
 				}
+			} else if (vp->attribute == PW_NAS_IPV6_ADDRESS && vp->type == PW_TYPE_IPV6ADDR) {
+				/* NAS-IPv6-Address */
+				inet_ntop(AF_INET6, vp->strvalue, pctx->nas_ipv6, sizeof(pctx->nas_ipv6));
 			} else if (vp->attribute == PW_FRAMED_IPV6_PREFIX && vp->type == PW_TYPE_IPV6PREFIX) {
+				if (vp->lvalue > 2 && vp->lvalue <= 18) {
+					/* Framed-IPv6-Prefix */
+					memset(ipv6, 0, sizeof(ipv6)); 
+					memcpy(ipv6, vp->strvalue+2, vp->lvalue-2); 
+					if (inet_ntop(AF_INET6, ipv6, txt, sizeof(txt)) != NULL) {
+						snprintf(route, sizeof(route), "%s/%u", txt, (unsigned)(unsigned char)vp->strvalue[1]);
+						append_route(pctx, vp->strvalue, vp->lvalue);
+					}
+				}
+			} else if (vp->attribute == PW_ROUTE_IPV6_INFORMATION && vp->type == PW_TYPE_IPV6PREFIX) {
 				if (vp->lvalue > 2 && vp->lvalue <= 18) {
 					/* Framed-IPv6-Prefix */
 					memset(ipv6, 0, sizeof(ipv6)); 
@@ -280,6 +293,10 @@ static int radius_auth_pass(void *ctx, const char *pass, unsigned pass_len)
 				/* Framed-IP-Address */
 				ipv4 = htonl(vp->lvalue);
 				inet_ntop(AF_INET, &ipv4, pctx->ipv4, sizeof(pctx->ipv4));
+			} else if (vp->attribute == PW_NAS_IP_ADDRESS && vp->type == PW_TYPE_IPADDR) {
+				/* NAS-IP-Address */
+				ipv4 = htonl(vp->lvalue);
+				inet_ntop(AF_INET, &ipv4, pctx->nas_ipv4, sizeof(pctx->nas_ipv4));
 			} else if (vp->attribute == PW_FRAMED_IP_NETMASK && vp->type == PW_TYPE_IPADDR) {
 				/* Framed-IP-Netmask */
 				ipv4 = htonl(vp->lvalue);
