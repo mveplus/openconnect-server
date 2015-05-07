@@ -157,6 +157,7 @@ struct proc_st *ctmp;
 
 	memcpy(&ctmp->remote_addr, remote_addr, remote_addr_len);
 	ctmp->remote_addr_len = remote_addr_len;
+	ctmp->config.ipv6_prefix = 128; /* default prefix */
 
 	list_add(&s->proc_list.head, &(ctmp->list));
 	put_into_cgroup(s, s->config->cgroup, pid);
