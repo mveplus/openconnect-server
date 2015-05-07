@@ -610,6 +610,9 @@ static int recv_cookie_auth_reply(worker_st * ws)
 
 			if (msg->has_ipv6_prefix) {
 				ws->config->network.ipv6_prefix = msg->ipv6_prefix;
+			} else {
+				/* assign a single IP */
+				ws->config->network.ipv6_prefix = 128;
 			}
 
 			if (msg->has_rx_per_sec)
