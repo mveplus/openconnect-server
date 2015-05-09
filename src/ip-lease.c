@@ -300,6 +300,8 @@ int get_ipv4_lease(main_server_st* s, struct proc_st* proc)
        		proc->ipv4->rip_len = sizeof(struct sockaddr_in);
 
        		/* LIP = network address + 1 */
+       		/* It would have been simpler to use a random link-local address here,
+       		 * but then it would be harder to debug. */
 		memcpy(&proc->ipv4->lip, &network, sizeof(struct sockaddr_in));
 		proc->ipv4->lip_len = sizeof(struct sockaddr_in);
 		SA_IN_U8_P(&proc->ipv4->lip)[3] |= 1;
@@ -424,6 +426,8 @@ int get_ipv6_lease(main_server_st* s, struct proc_st* proc)
 			}
 		} else {
 			/* LIP = network address */
+	       		/* It would have been simpler to use a random link-local address here,
+       			 * but then it would be harder to debug. */
 			memcpy(&proc->ipv6->lip, &network, sizeof(struct sockaddr_in6));
 			proc->ipv6->lip_len = sizeof(struct sockaddr_in6);
 
