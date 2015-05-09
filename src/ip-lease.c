@@ -189,6 +189,16 @@ int get_ipv4_lease(main_server_st* s, struct proc_st* proc)
        	((struct sockaddr_in*)&network)->sin_family = AF_INET;
        	((struct sockaddr_in*)&network)->sin_port = 0;
 
+	proc->ipv4 = talloc_zero(proc, struct ip_lease_st);
+	if (proc->ipv4 == NULL)
+		return ERR_MEM;
+	/* LIP = network address + 1 */
+	/* It would have been simpler to use a random link-local address here,
+	 * but then it would be harder to debug. */
+	memcpy(&proc->ipv4->lip, &network, sizeof(struct sockaddr_in));
+	proc->ipv4->lip_len = sizeof(struct sockaddr_in);
+	SA_IN_U8_P(&proc->ipv4->lip)[3] |= 1;
+
 	if (proc->config.explicit_ipv4) {
 		/* if an explicit IP is given for that client, then
 		 * do implicit IP accounting. Require the address
@@ -198,12 +208,9 @@ int get_ipv4_lease(main_server_st* s, struct proc_st* proc)
 
 		if (ret != 1) {
 			mslog(s, NULL, LOG_ERR, "error reading explicit IP: %s", proc->config.explicit_ipv4);
-			return -1;
+			ret = -1;
+			goto fail;
 		}
-
-		proc->ipv4 = talloc_zero(proc, struct ip_lease_st);
-		if (proc->ipv4 == NULL)
-			return ERR_MEM;
 
         	((struct sockaddr_in*)&tmp)->sin_family = AF_INET;
         	((struct sockaddr_in*)&tmp)->sin_port = 0;
@@ -217,45 +224,15 @@ int get_ipv4_lease(main_server_st* s, struct proc_st* proc)
 			goto fail;
 		}
 
-		if (proc->config.explicit_local_ipv4) {
-			ret =
-			    inet_pton(AF_INET, proc->config.explicit_local_ipv4, SA_IN_P(&tmp));
-
-			if (ret != 1) {
-				mslog(s, NULL, LOG_ERR, "error reading explicit IP: %s", proc->config.explicit_local_ipv4);
-				return -1;
-			}
-
-	        	((struct sockaddr_in*)&tmp)->sin_family = AF_INET;
-        		((struct sockaddr_in*)&tmp)->sin_port = 0;
-			memcpy(&proc->ipv4->lip, &tmp, sizeof(struct sockaddr_in));
-       			proc->ipv4->lip_len = sizeof(struct sockaddr_in);
-
-			if (is_ipv4_ok(s, &proc->ipv4->lip, &network, &mask) == 0) {
-				mslog(s, proc, LOG_DEBUG, "cannot assign explicit IP %s; it is in use or invalid", 
-				      human_addr((void*)&tmp, sizeof(struct sockaddr_in), buf, sizeof(buf)));
-				ret = ERR_NO_IP;
-				goto fail;
-			}
-		} else {
-			/* LIP = network address + 1 */
-			memcpy(&proc->ipv4->lip, &network, sizeof(struct sockaddr_in));
-			proc->ipv4->lip_len = sizeof(struct sockaddr_in);
-			SA_IN_U8_P(&proc->ipv4->lip)[3] |= 1;
-
-			if (ip_cmp(&proc->ipv4->lip, &proc->ipv4->rip) == 0) {
-				mslog(s, NULL, LOG_ERR, "cannot assign explicit IP %s; network: %s", proc->config.explicit_ipv4, c_network);
-				ret = ERR_NO_IP;
-				goto fail;
-			}
+		if (ip_cmp(&proc->ipv4->lip, &proc->ipv4->rip) == 0) {
+			mslog(s, NULL, LOG_ERR, "cannot assign explicit IP %s; network: %s", proc->config.explicit_ipv4, c_network);
+			ret = ERR_NO_IP;
+			goto fail;
 		}
 		return 0;
 	}
 
 	/* assign "random" IP */
-	proc->ipv4 = talloc_zero(proc, struct ip_lease_st);
-	if (proc->ipv4 == NULL)
-		return ERR_MEM;
 	proc->ipv4->db = &s->ip_leases;
 
        	memcpy(&tmp, &network, sizeof(tmp));
@@ -298,13 +275,6 @@ int get_ipv4_lease(main_server_st* s, struct proc_st* proc)
 
 		memcpy(&proc->ipv4->rip, &rnd, sizeof(struct sockaddr_in));
        		proc->ipv4->rip_len = sizeof(struct sockaddr_in);
-
-       		/* LIP = network address + 1 */
-       		/* It would have been simpler to use a random link-local address here,
-       		 * but then it would be harder to debug. */
-		memcpy(&proc->ipv4->lip, &network, sizeof(struct sockaddr_in));
-		proc->ipv4->lip_len = sizeof(struct sockaddr_in);
-		SA_IN_U8_P(&proc->ipv4->lip)[3] |= 1;
 
 		if (memcmp(SA_IN_U8_P(&proc->ipv4->lip), SA_IN_U8_P(&proc->ipv4->rip), sizeof(struct in_addr)) == 0) {
 			continue;
@@ -375,18 +345,24 @@ int get_ipv6_lease(main_server_st* s, struct proc_st* proc)
 	((struct sockaddr_in6*)&network)->sin6_family = AF_INET6;
 	((struct sockaddr_in6*)&network)->sin6_port = 0;
 
+	proc->ipv6 = talloc_zero(proc, struct ip_lease_st);
+	if (proc->ipv6 == NULL)
+		return ERR_MEM;
+	/* LIP = network address */
+  	/* It would have been simpler to use a random link-local address here,
+	 * but then it would be harder to debug. */
+	memcpy(&proc->ipv6->lip, &network, sizeof(struct sockaddr_in6));
+	proc->ipv6->lip_len = sizeof(struct sockaddr_in6);
+
 	if (proc->config.explicit_ipv6) {
 		ret =
 		    inet_pton(AF_INET6, proc->config.explicit_ipv6, SA_IN6_P(&tmp));
 
 		if (ret != 1) {
 			mslog(s, NULL, LOG_ERR, "error reading explicit IP %s", proc->config.explicit_ipv6);
-			return -1;
+			ret = -1;
+			goto fail;
 		}
-
-		proc->ipv6 = talloc_zero(proc, struct ip_lease_st);
-		if (proc->ipv6 == NULL)
-			return ERR_MEM;
 
         	((struct sockaddr_in6*)&tmp)->sin6_family = AF_INET6;
         	((struct sockaddr_in6*)&tmp)->sin6_port = 0;
@@ -400,51 +376,16 @@ int get_ipv6_lease(main_server_st* s, struct proc_st* proc)
 			goto fail;
 		}
 
-		if (proc->config.explicit_local_ipv6) {
-			ret =
-			    inet_pton(AF_INET6, proc->config.explicit_local_ipv6, SA_IN6_P(&tmp));
-
-			if (ret != 1) {
-				mslog(s, NULL, LOG_ERR, "error reading explicit IP %s", proc->config.explicit_local_ipv6);
-				return -1;
-			}
-
-			proc->ipv6 = talloc_zero(proc, struct ip_lease_st);
-			if (proc->ipv6 == NULL)
-				return ERR_MEM;
-
-	        	((struct sockaddr_in6*)&tmp)->sin6_family = AF_INET6;
-        		((struct sockaddr_in6*)&tmp)->sin6_port = 0;
-			memcpy(&proc->ipv6->lip, &tmp, sizeof(struct sockaddr_in6));
-       			proc->ipv6->lip_len = sizeof(struct sockaddr_in6);
-
-			if (is_ipv6_ok(s, &tmp, &network, &mask) == 0) {
-				mslog(s, proc, LOG_DEBUG, "cannot assign explicit local IP %s; it is in use or invalid", 
-				      human_addr((void*)&tmp, sizeof(struct sockaddr_in6), buf, sizeof(buf)));
-				ret = ERR_NO_IP;
-				goto fail;
-			}
-		} else {
-			/* LIP = network address */
-	       		/* It would have been simpler to use a random link-local address here,
-       			 * but then it would be harder to debug. */
-			memcpy(&proc->ipv6->lip, &network, sizeof(struct sockaddr_in6));
-			proc->ipv6->lip_len = sizeof(struct sockaddr_in6);
-
-			if (memcmp(SA_IN6_U8_P(&proc->ipv6->lip), SA_IN6_U8_P(&proc->ipv6->rip), sizeof(struct in6_addr)) == 0) {
-				mslog(s, NULL, LOG_ERR, "cannot assign explicit local IP %s; network %s", proc->config.explicit_ipv6, c_network);
-				ret = ERR_NO_IP;
-				goto fail;
-			}
+		if (memcmp(SA_IN6_U8_P(&proc->ipv6->lip), SA_IN6_U8_P(&proc->ipv6->rip), sizeof(struct in6_addr)) == 0) {
+			mslog(s, NULL, LOG_ERR, "cannot assign explicit local IP %s; network %s", proc->config.explicit_ipv6, c_network);
+			ret = ERR_NO_IP;
+			goto fail;
 		}
 
 		return 0;
 	}
 
 	/* assign "random" IP */
-	proc->ipv6 = talloc_zero(proc, struct ip_lease_st);
-	if (proc->ipv6 == NULL)
-		return ERR_MEM;
 	proc->ipv6->db = &s->ip_leases;
 
   	memcpy(&tmp, &network, sizeof(tmp));
@@ -453,10 +394,6 @@ int get_ipv6_lease(main_server_st* s, struct proc_st* proc)
 
        	((struct sockaddr_in6*)&rnd)->sin6_family = AF_INET6;
        	((struct sockaddr_in6*)&rnd)->sin6_port = 0;
-
-	/* LIP = network address */
-	memcpy(&proc->ipv6->lip, &network, sizeof(struct sockaddr_in6));
-	proc->ipv6->lip_len = sizeof(struct sockaddr_in6);
 
        	if (prefix + s->config->network.ipv6_subnet_id_length > 128) {
 		mslog(s, NULL, LOG_ERR, "cannot assign explicit IP; subnet_id and prefix are invalid");

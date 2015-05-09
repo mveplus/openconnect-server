@@ -56,8 +56,6 @@ int send_cookie_auth_reply(main_server_st* s, struct proc_st* proc,
 	if (r == AUTH__REP__OK && proc->tun_lease.name[0] != 0) {
 		char ipv6[MAX_IP_STR];
 		char ipv4[MAX_IP_STR];
-		char ipv6_local[MAX_IP_STR];
-		char ipv4_local[MAX_IP_STR];
 
 		/* fill message */
 		msg.reply = AUTH__REP__OK;
@@ -76,15 +74,11 @@ int send_cookie_auth_reply(main_server_st* s, struct proc_st* proc,
 		if (proc->ipv4 && proc->ipv4->rip_len > 0) {
 			msg.ipv4 = human_addr2((struct sockaddr*)&proc->ipv4->rip, proc->ipv4->rip_len,
 					ipv4, sizeof(ipv4), 0);
-			msg.ipv4_local = human_addr2((struct sockaddr*)&proc->ipv4->lip, proc->ipv4->lip_len,
-					ipv4_local, sizeof(ipv4_local), 0);
 		}
 
 		if (proc->ipv6 && proc->ipv6->rip_len > 0) {
 			msg.ipv6 = human_addr2((struct sockaddr*)&proc->ipv6->rip, proc->ipv6->rip_len,
 					ipv6, sizeof(ipv6), 0);
-			msg.ipv6_local = human_addr2((struct sockaddr*)&proc->ipv6->lip, proc->ipv6->lip_len,
-					ipv6_local, sizeof(ipv6_local), 0);
 		}
 
 		msg.ipv4_netmask = proc->config.ipv4_netmask;

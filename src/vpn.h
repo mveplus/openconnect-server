@@ -195,8 +195,6 @@ struct group_cfg_st {
 
 	char *explicit_ipv4;
 	char *explicit_ipv6;
-	char *explicit_local_ipv4;
-	char *explicit_local_ipv6;
 
 	char *cgroup;
 
@@ -215,12 +213,10 @@ struct vpn_st {
 	char *ipv4_netmask;
 	char *ipv4_network;
 	char *ipv4;
-	char *ipv4_local; /* local IPv4 address */
 	char *ipv6_network;
 	unsigned ipv6_prefix;
 
 	char *ipv6;
-	char *ipv6_local; /* local IPv6 address */
 	unsigned ipv6_subnet_id_length;
 	unsigned int mtu;
 

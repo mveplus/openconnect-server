@@ -327,14 +327,6 @@ static int radius_auth_pass(void *ctx, const char *pass, unsigned pass_len)
 				/* Framed-IP-Address */
 				ipv4 = htonl(vp->lvalue);
 				inet_ntop(AF_INET, &ipv4, pctx->ipv4, sizeof(pctx->ipv4));
-			} else if (vp->attribute == PW_NAS_IP_ADDRESS && vp->type == PW_TYPE_IPADDR) {
-				/* NAS-IP-Address and NAS-IPv6-Address used in incoming
-				 * Access-Accept seem to be non-standard, but used like
-				 * that by pppd. */
-				ipv4 = htonl(vp->lvalue);
-				inet_ntop(AF_INET, &ipv4, pctx->local_ipv4, sizeof(pctx->local_ipv4));
-			} else if (vp->attribute == PW_NAS_IPV6_ADDRESS && vp->type == PW_TYPE_IPV6ADDR) {
-				inet_ntop(AF_INET6, vp->strvalue, pctx->local_ipv6, sizeof(pctx->local_ipv6));
 			} else if (vp->attribute == PW_FRAMED_IP_NETMASK && vp->type == PW_TYPE_IPADDR) {
 				/* Framed-IP-Netmask */
 				ipv4 = htonl(vp->lvalue);

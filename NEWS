@@ -14,8 +14,6 @@
 - radius: added support for Route-IPv6-Information, Delegated-IPv6-Prefix,
   NAS-IPv6-Address, NAS-IP-Address.
 - Added configuration options 'persistent-cookies' and 'ipv6-subnet-id-length'.
-- Added user-specific configuration option explicit-local-ipv4 and
-  explicit-local-ipv6.
 - An IPv6 subnet is sent to connecting clients instead of a fixed address.
 
 

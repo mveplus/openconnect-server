@@ -60,8 +60,6 @@ message auth_reply_msg
 	/* the ips of the tun device */
 	optional string ipv4 = 7;
 	optional string ipv6 = 8;
-	optional string ipv4_local = 9;
-	optional string ipv6_local = 10;
 
 	/* additional config */
 	optional string ipv4_netmask = 15;

@@ -571,24 +571,6 @@ static int recv_cookie_auth_reply(worker_st * ws)
 					    talloc_strdup(ws, msg->ipv6);
 			}
 
-			if (msg->ipv4_local != NULL) {
-				talloc_free(ws->vinfo.ipv4_local);
-				if (strcmp(msg->ipv4_local, "0.0.0.0") == 0)
-					ws->vinfo.ipv4_local = NULL;
-				else
-					ws->vinfo.ipv4_local =
-					    talloc_strdup(ws, msg->ipv4_local);
-			}
-
-			if (msg->ipv6_local != NULL) {
-				talloc_free(ws->vinfo.ipv6_local);
-				if (strcmp(msg->ipv6_local, "::") == 0)
-					ws->vinfo.ipv6_local = NULL;
-				else
-					ws->vinfo.ipv6_local =
-					    talloc_strdup(ws, msg->ipv6_local);
-			}
-
 			/* Read any additional data */
 			if (msg->ipv4_netmask != NULL) {
 				talloc_free(ws->config->network.ipv4_netmask);
