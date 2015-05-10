@@ -452,7 +452,9 @@ ipv4-netmask = 255.255.255.0
 
 # The length, in bits, of the subnet id to give addresses to clients.
 # This also defines the maximum number of clients the server can handle,
-# i.e., 2^(length).
+# i.e., 2^(length). The default value is such that only a single point
+# address is given to a client. E.g, if your network is fc00::/7, then the
+# default value will be 121, and clients will receive addresses with 128 mask.
 #ipv6-subnet-id-length = 16
 
 # The advertized DNS server. Use multiple lines for

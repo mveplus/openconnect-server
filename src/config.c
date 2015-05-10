@@ -888,8 +888,6 @@ unsigned urlfw_size = 0;
 
 	READ_STRING("ipv6-network", config->network.ipv6);
 	READ_NUMERIC("ipv6-subnet-id-length", config->network.ipv6_subnet_id_length);
-	if (config->network.ipv6_subnet_id_length == 0)
-		config->network.ipv6_subnet_id_length = DEFAULT_SUBNET_ID_LENGTH;
 
 	prefix = extract_prefix(config->network.ipv6);
 	if (prefix == 0) {
@@ -904,7 +902,10 @@ unsigned urlfw_size = 0;
 			exit(1);
 		}
 
-		if (prefix + config->network.ipv6_subnet_id_length >= 128) {
+		if (config->network.ipv6_subnet_id_length == 0)
+			config->network.ipv6_subnet_id_length = 128 - prefix;
+
+		if (prefix + config->network.ipv6_subnet_id_length > 128) {
 			fprintf(stderr, "prefix (%d) + subnet id length (%d) are invalid\n", prefix, config->network.ipv6_subnet_id_length);
 			exit(1);
 		}
