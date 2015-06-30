@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Nikos Mavrogiannopoulos
+ * Copyright (C) 2015 Red Hat, Inc.
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -31,6 +32,7 @@
 #include <common.h>
 #include <sys/un.h>
 #include <sys/uio.h>
+#include <ev.h>
 
 #if defined(__FreeBSD__) || defined(__OpenBSD__)
 # include <limits.h>
@@ -39,15 +41,22 @@
 
 #define COOKIE_KEY_SIZE 16
 
+extern struct ev_loop *loop;
+extern ev_timer maintainance_watcher;
+
+#define MAIN_MAINTAINANCE_TIME (900)
+#define reset_maintainance_timer(s) { \
+	ev_timer_stop(loop, &maintainance_watcher); \
+	ev_timer_set(&maintainance_watcher, 0, MAIN_MAINTAINANCE_TIME); \
+	ev_timer_start(loop, &maintainance_watcher); \
+	}
+
 extern sigset_t sig_default_set;
 int cmd_parser (void *pool, int argc, char **argv, struct perm_cfg_st** config);
 void reload_cfg_file(void *pool, struct perm_cfg_st* config);
 void clear_cfg(struct perm_cfg_st* config);
 void write_pid_file(void);
 void remove_pid_file(void);
-
-/* set to 1 to start cleaning up cookies, sessions etc. */
-extern unsigned int need_maintenance;
 
 struct listener_st {
 	struct list_node list;
@@ -66,6 +75,9 @@ struct listen_list_st {
 };
 
 struct script_wait_st {
+	/* so that this structure can behave as ev_child */
+	struct ev_child ev_child;
+
 	struct list_node list;
 
 	pid_t pid;
@@ -84,6 +96,10 @@ enum {
 /* Each worker process maps to a unique proc_st structure.
  */
 typedef struct proc_st {
+	/* This is first so this structure can behave as an ev_io */
+	struct ev_io io;
+	struct ev_child ev_child;
+
 	struct list_node list;
 	int fd; /* the command file descriptor */
 	pid_t pid;
@@ -195,6 +211,9 @@ typedef struct main_server_st {
 	time_t start_time;
 
 	void * auth_extra;
+
+	/* This one is on worker pool */
+	struct worker_st *ws;
 
 #ifdef HAVE_DBUS
 	void * ctl_ctx;

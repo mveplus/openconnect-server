@@ -47,6 +47,7 @@
 #include <proc-search.h>
 #include <ipc.pb-c.h>
 #include <script-list.h>
+#include <ev.h>
 
 #ifdef HAVE_MALLOC_TRIM
 # include <malloc.h>
@@ -170,6 +171,9 @@ struct proc_st *ctmp;
 void remove_proc(main_server_st * s, struct proc_st *proc, unsigned flags)
 {
 	mslog(s, proc, LOG_INFO, "user disconnected");
+
+	ev_io_stop(EV_A_ &proc->io);
+	ev_child_stop(EV_A_ &proc->ev_child);
 
 	list_del(&proc->list);
 	s->active_clients--;
