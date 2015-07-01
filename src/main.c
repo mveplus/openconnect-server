@@ -1094,6 +1094,12 @@ int main(int argc, char** argv)
 #endif
 	memset(&creds, 0, sizeof(creds));
 
+	loop = EV_DEFAULT;
+	if (loop == NULL) {
+		fprintf(stderr, "could not initialise libev\n");
+		exit(1);
+	}
+
 	/* main pool */
 	main_pool = talloc_init("main");
 	if (main_pool == NULL) {
@@ -1234,7 +1240,6 @@ int main(int argc, char** argv)
 	close(STDIN_FILENO);
 	close(STDOUT_FILENO);
 
-	loop = EV_DEFAULT;
 	ev_set_userdata (loop, s);
 	ev_set_syserr_cb(syserr_cb);
 
