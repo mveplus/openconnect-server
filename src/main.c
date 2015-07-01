@@ -861,9 +861,6 @@ static void term_sig_watcher_cb(struct ev_loop *loop, ev_signal *w, int revents)
 
 	mslog(s, NULL, LOG_INFO, "termination request received; waiting for children to die");
 	kill_children(s);
-	remove(s->full_socket_file);
-	remove(s->perm_config->occtl_socket_file);
-	remove_pid_file();
 
 	while (waitpid(-1, NULL, WNOHANG) >= 0) {
 		if (total == 0) {
@@ -874,15 +871,6 @@ static void term_sig_watcher_cb(struct ev_loop *loop, ev_signal *w, int revents)
 		total--;
 	}
 
-	/* try to clean-up everything allocated to ease checks 
-	 * for memory leaks.
-	 */
-	clear_lists(s);
-	tls_global_deinit(s->creds);
-	clear_cfg(s->perm_config);
-	talloc_free(s->perm_config);
-	talloc_free(s->main_pool);
-	closelog();
 	ev_break (loop, EVBREAK_ALL);
 }
 
@@ -1278,7 +1266,22 @@ int main(int argc, char** argv)
 	ev_timer_set(&maintainance_watcher, MAIN_MAINTAINANCE_TIME, MAIN_MAINTAINANCE_TIME);
 	ev_timer_start(loop, &maintainance_watcher);
 
+	/* Main server loop */
 	ev_run (loop, 0);
+
+	/* try to clean-up everything allocated to ease checks 
+	 * for memory leaks.
+	 */
+	remove(s->full_socket_file);
+	remove(s->perm_config->occtl_socket_file);
+	remove_pid_file();
+
+	clear_lists(s);
+	tls_global_deinit(s->creds);
+	clear_cfg(s->perm_config);
+	talloc_free(s->perm_config);
+	talloc_free(s->main_pool);
+	closelog();
 
 	return 0;
 }
