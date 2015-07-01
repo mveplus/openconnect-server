@@ -877,7 +877,7 @@ static void term_sig_watcher_cb(struct ev_loop *loop, ev_signal *w, int revents)
 	talloc_free(s->perm_config);
 	talloc_free(s->main_pool);
 	closelog();
-	exit(0);
+	ev_break (loop, EVBREAK_ALL);
 }
 
 static void reload_sig_watcher_cb(struct ev_loop *loop, ev_signal *w, int revents)
