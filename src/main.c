@@ -1073,6 +1073,13 @@ static void maintainance_watcher_cb(EV_P_ ev_timer *w, int revents)
 	cleanup_banned_entries(s);
 }
 
+static void syserr_cb (const char *msg)
+{
+	main_server_st *s = ev_userdata(loop);
+
+	mslog(s, NULL, LOG_ERR, "libev fatal error: %s", msg);
+	abort();
+}
 
 int main(int argc, char** argv)
 {
@@ -1232,6 +1239,8 @@ int main(int argc, char** argv)
 	close(STDOUT_FILENO);
 
 	loop = EV_DEFAULT;
+	ev_set_userdata (loop, s);
+	ev_set_syserr_cb(syserr_cb);
 
 	ev_init(&ctl_watcher, ctl_watcher_cb);
 	ev_init(&sec_mod_watcher, sec_mod_watcher_cb);
@@ -1270,8 +1279,6 @@ int main(int argc, char** argv)
 	ev_init(&maintainance_watcher, maintainance_watcher_cb);
 	ev_timer_set(&maintainance_watcher, MAIN_MAINTAINANCE_TIME, MAIN_MAINTAINANCE_TIME);
 	ev_timer_start(loop, &maintainance_watcher);
-
-	ev_set_userdata (loop, s);
 
 	ev_run (loop, 0);
 
