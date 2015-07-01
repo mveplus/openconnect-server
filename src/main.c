@@ -80,6 +80,7 @@ ev_io ctl_watcher;
 ev_io sec_mod_watcher;
 ev_timer maintainance_watcher;
 ev_signal term_sig_watcher;
+ev_signal int_sig_watcher;
 ev_signal reload_sig_watcher;
 ev_child child_watcher;
 
@@ -1245,8 +1246,11 @@ int main(int argc, char** argv)
 	ev_init(&ctl_watcher, ctl_watcher_cb);
 	ev_init(&sec_mod_watcher, sec_mod_watcher_cb);
 
+	ev_init (&int_sig_watcher, term_sig_watcher_cb);
+	ev_signal_set (&int_sig_watcher, SIGINT);
+	ev_signal_start (loop, &int_sig_watcher);
+
 	ev_init (&term_sig_watcher, term_sig_watcher_cb);
-	ev_signal_set (&term_sig_watcher, SIGINT);
 	ev_signal_set (&term_sig_watcher, SIGTERM);
 	ev_signal_start (loop, &term_sig_watcher);
 
