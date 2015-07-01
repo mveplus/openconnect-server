@@ -54,6 +54,7 @@ void write_pid_file(void);
 void remove_pid_file(void);
 
 struct listener_st {
+	ev_io io;
 	struct list_node list;
 	int fd;
 	sock_type_t sock_type;

@@ -71,6 +71,8 @@ extern const ASN1_ARRAY_TYPE kkdcp_asn1_tab[];
 ASN1_TYPE _kkdcp_pkix1_asn = ASN1_TYPE_EMPTY;
 #endif
 
+static void listen_watcher_cb (EV_P_ ev_io *w, int revents);
+
 int syslog_open = 0;
 sigset_t sig_default_set;
 struct ev_loop *loop;
@@ -98,6 +100,9 @@ static void add_listener(void *pool, struct listen_list_st *list,
 
 	tmp->addr_len = addr_len;
 	memcpy(&tmp->addr, addr, addr_len);
+
+	ev_init(&tmp->io, listen_watcher_cb);
+	ev_io_set(&tmp->io, fd, EV_READ);
 
 	list_add(&list->head, &(tmp->list));
 	list->total++;
@@ -907,141 +912,131 @@ static void cmd_watcher_cb (EV_P_ ev_io *w, int revents)
 static void listen_watcher_cb (EV_P_ ev_io *w, int revents)
 {
 	main_server_st *s = ev_userdata(loop);
-	struct listener_st *ltmp = NULL;
+	struct listener_st *ltmp = (struct listener_st *)w;
 	struct proc_st *ctmp = NULL;
 	struct worker_st *ws = s->ws;
 	int fd, ret;
 	int cmd_fd[2];
 	pid_t pid;
 
-	/* hopefully we only iterate through a couple of these, and
-	 * we don't need to optimize that */
-	list_for_each(&s->listen_list.head, ltmp, list) {
-		if (w->fd != ltmp->fd)
-			continue;
+	if (ltmp->sock_type == SOCK_TYPE_TCP || ltmp->sock_type == SOCK_TYPE_UNIX) {
+		/* connection on TCP port */
+		int stype = ltmp->sock_type;
 
-		if (ltmp->sock_type == SOCK_TYPE_TCP || ltmp->sock_type == SOCK_TYPE_UNIX) {
-			/* connection on TCP port */
-			int stype = ltmp->sock_type;
-
-			ws->remote_addr_len = sizeof(ws->remote_addr);
-			fd = accept(ltmp->fd, (void*)&ws->remote_addr, &ws->remote_addr_len);
-			if (fd < 0) {
-				mslog(s, NULL, LOG_ERR,
-				       "error in accept(): %s", strerror(errno));
-				continue;
-			}
-			set_cloexec_flag (fd, 1);
-#ifndef __linux__
-				/* OpenBSD sets the non-blocking flag if accept's fd is non-blocking */
-			set_block(fd);
-#endif
-
-			if (s->config->max_clients > 0 && s->active_clients >= s->config->max_clients) {
-				close(fd);
-				mslog(s, NULL, LOG_INFO, "reached maximum client limit (active: %u)", s->active_clients);
-				break;
-			}
-
-			if (check_tcp_wrapper(fd) < 0) {
-				close(fd);
-				mslog(s, NULL, LOG_INFO, "TCP wrappers rejected the connection (see /etc/hosts->[allow|deny])");
-				break;
-			}
-
-			if (check_if_banned(s, &ws->remote_addr, ws->remote_addr_len) != 0) {
-				close(fd);
-				break;
-			}
-
-			/* Create a command socket */
-			ret = socketpair(AF_UNIX, SOCK_STREAM, 0, cmd_fd);
-			if (ret < 0) {
-				mslog(s, NULL, LOG_ERR, "error creating command socket");
-				close(fd);
-				break;
-			}
-
-			pid = fork();
-			if (pid == 0) {	/* child */
-				/* close any open descriptors, and erase
-				 * sensitive data before running the worker
-				 */
-				sigprocmask(SIG_SETMASK, &sig_default_set, NULL);
-				close(cmd_fd[0]);
-				clear_lists(s);
-				close(s->sec_mod_fd);
-				close(s->sec_mod_fd_sync);
-
-				/* clear the cookie key */
-				safe_memset(s->cookie_key, 0, sizeof(s->cookie_key));
-
-				setproctitle(PACKAGE_NAME"-worker");
-				kill_on_parent_kill(SIGTERM);
-
-				/* write sec-mod's address */
-				memcpy(&ws->secmod_addr, &s->secmod_addr, s->secmod_addr_len);
-				ws->secmod_addr_len = s->secmod_addr_len;
-
-				ws->main_pool = s->main_pool;
-				ws->config = s->config;
-				ws->perm_config = s->perm_config;
-				ws->cmd_fd = cmd_fd[1];
-				ws->tun_fd = -1;
-				ws->dtls_tptr.fd = -1;
-				ws->conn_fd = fd;
-				ws->conn_type = stype;
-				ws->creds = s->creds;
-
-				/* Drop privileges after this point */
-				drop_privileges(s);
-
-				/* creds and config are not allocated
-				 * under s.
-				 */
-				talloc_free(s);
-#ifdef HAVE_MALLOC_TRIM
-				/* try to return all the pages we've freed to
-				 * the operating system, to prevent the child from
-				 * accessing them. That's totally unreliable, so
-				 * sensitive data have to be overwritten anyway. */
-				malloc_trim(0);
-#endif
-				vpn_server(ws);
-				exit(0);
-			} else if (pid == -1) {
-fork_failed:
-				mslog(s, NULL, LOG_ERR, "fork failed");
-				close(cmd_fd[0]);
-			} else { /* parent */
-				/* add_proc */
-				ctmp = new_proc(s, pid, cmd_fd[0], 
-						&ws->remote_addr, ws->remote_addr_len,
-						ws->sid, sizeof(ws->sid));
-				if (ctmp == NULL) {
-					kill(pid, SIGTERM);
-					goto fork_failed;
-				}
-
-				ev_io_init(&ctmp->io, cmd_watcher_cb, cmd_fd[0], EV_READ);
-				ev_io_start(loop, &ctmp->io);
-
-				ev_child_init(&ctmp->ev_child, worker_child_watcher_cb, pid, 0);
-				ev_child_start(loop, &ctmp->ev_child);
-			}
-			close(cmd_fd[1]);
-			close(fd);
-
-			if (s->config->rate_limit_ms > 0)
-				ms_sleep(s->config->rate_limit_ms);
-		} else if (ltmp->sock_type == SOCK_TYPE_UDP) {
-			/* connection on UDP port */
-			forward_udp_to_owner(s, ltmp);
-
-			if (s->config->rate_limit_ms > 0)
-				ms_sleep(s->config->rate_limit_ms);
+		ws->remote_addr_len = sizeof(ws->remote_addr);
+		fd = accept(ltmp->fd, (void*)&ws->remote_addr, &ws->remote_addr_len);
+		if (fd < 0) {
+			mslog(s, NULL, LOG_ERR,
+			       "error in accept(): %s", strerror(errno));
+			return;
 		}
+		set_cloexec_flag (fd, 1);
+#ifndef __linux__
+		/* OpenBSD sets the non-blocking flag if accept's fd is non-blocking */
+		set_block(fd);
+#endif
+
+		if (s->config->max_clients > 0 && s->active_clients >= s->config->max_clients) {
+			close(fd);
+			mslog(s, NULL, LOG_INFO, "reached maximum client limit (active: %u)", s->active_clients);
+			return;
+		}
+
+		if (check_tcp_wrapper(fd) < 0) {
+			close(fd);
+			mslog(s, NULL, LOG_INFO, "TCP wrappers rejected the connection (see /etc/hosts->[allow|deny])");
+			return;
+		}
+
+		if (check_if_banned(s, &ws->remote_addr, ws->remote_addr_len) != 0) {
+			close(fd);
+			return;
+		}
+
+		/* Create a command socket */
+		ret = socketpair(AF_UNIX, SOCK_STREAM, 0, cmd_fd);
+		if (ret < 0) {
+			mslog(s, NULL, LOG_ERR, "error creating command socket");
+			close(fd);
+			return;
+		}
+
+		pid = fork();
+		if (pid == 0) {	/* child */
+			/* close any open descriptors, and erase
+			 * sensitive data before running the worker
+			 */
+			sigprocmask(SIG_SETMASK, &sig_default_set, NULL);
+			close(cmd_fd[0]);
+			clear_lists(s);
+			close(s->sec_mod_fd);
+			close(s->sec_mod_fd_sync);
+
+			/* clear the cookie key */
+			safe_memset(s->cookie_key, 0, sizeof(s->cookie_key));
+
+			setproctitle(PACKAGE_NAME"-worker");
+			kill_on_parent_kill(SIGTERM);
+
+			/* write sec-mod's address */
+			memcpy(&ws->secmod_addr, &s->secmod_addr, s->secmod_addr_len);
+			ws->secmod_addr_len = s->secmod_addr_len;
+
+			ws->main_pool = s->main_pool;
+			ws->config = s->config;
+			ws->perm_config = s->perm_config;
+			ws->cmd_fd = cmd_fd[1];
+			ws->tun_fd = -1;
+			ws->dtls_tptr.fd = -1;
+			ws->conn_fd = fd;
+			ws->conn_type = stype;
+			ws->creds = s->creds;
+
+			/* Drop privileges after this point */
+			drop_privileges(s);
+
+			/* creds and config are not allocated
+			 * under s.
+			 */
+			talloc_free(s);
+#ifdef HAVE_MALLOC_TRIM
+			/* try to return all the pages we've freed to
+			 * the operating system, to prevent the child from
+			 * accessing them. That's totally unreliable, so
+			 * sensitive data have to be overwritten anyway. */
+			malloc_trim(0);
+#endif
+			vpn_server(ws);
+			exit(0);
+		} else if (pid == -1) {
+fork_failed:
+			mslog(s, NULL, LOG_ERR, "fork failed");
+			close(cmd_fd[0]);
+		} else { /* parent */
+			/* add_proc */
+			ctmp = new_proc(s, pid, cmd_fd[0], 
+					&ws->remote_addr, ws->remote_addr_len,
+					ws->sid, sizeof(ws->sid));
+			if (ctmp == NULL) {
+				kill(pid, SIGTERM);
+				goto fork_failed;
+			}
+
+			ev_io_init(&ctmp->io, cmd_watcher_cb, cmd_fd[0], EV_READ);
+			ev_io_start(loop, &ctmp->io);
+
+			ev_child_init(&ctmp->ev_child, worker_child_watcher_cb, pid, 0);
+			ev_child_start(loop, &ctmp->ev_child);
+		}
+		close(cmd_fd[1]);
+		close(fd);
+	} else if (ltmp->sock_type == SOCK_TYPE_UDP) {
+		/* connection on UDP port */
+		forward_udp_to_owner(s, ltmp);
 	}
+
+	if (s->config->rate_limit_ms > 0)
+		ms_sleep(s->config->rate_limit_ms);
 }
 
 static void sec_mod_watcher_cb (EV_P_ ev_io *w, int revents)
@@ -1260,15 +1255,9 @@ int main(int argc, char** argv)
 
 	/* set the standard fds we watch */
 	list_for_each(&s->listen_list.head, ltmp, list) {
-		ev_io *lw;
-
 		if (ltmp->fd == -1) continue;
-		lw = malloc(sizeof(*lw));
-		if (lw == NULL)
-			continue;
-		ev_init(lw, listen_watcher_cb);
-		ev_io_set(lw, ltmp->fd, EV_READ);
-		ev_io_start (loop, lw);
+
+		ev_io_start (loop, &ltmp->io);
 	}
 
 	ev_io_set(&sec_mod_watcher, s->sec_mod_fd, EV_READ);
