@@ -45,11 +45,6 @@ extern struct ev_loop *loop;
 extern ev_timer maintainance_watcher;
 
 #define MAIN_MAINTAINANCE_TIME (900)
-#define reset_maintainance_timer(s) { \
-	ev_timer_stop(loop, &maintainance_watcher); \
-	ev_timer_set(&maintainance_watcher, 0, MAIN_MAINTAINANCE_TIME); \
-	ev_timer_start(loop, &maintainance_watcher); \
-	}
 
 extern sigset_t sig_default_set;
 int cmd_parser (void *pool, int argc, char **argv, struct perm_cfg_st** config);

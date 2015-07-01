@@ -131,7 +131,6 @@ int handle_resume_store_req(main_server_st * s, struct proc_st *proc,
 		mslog(s, NULL, LOG_INFO,
 		      "maximum number of stored TLS sessions reached (%u)",
 		      max);
-		reset_maintainance_timer(s);
 		return -1;
 	}
 
